@@ -12,9 +12,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-
-	fileserver := http.FileServer(http.Dir(env.fileserverPath))
-	mux.Handle("/", fileserver)
+	registerRoutes(mux, env)
 
 	server := &http.Server{
 		Addr:    ":" + env.port,
