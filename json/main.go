@@ -11,8 +11,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	app := &App{
+		env: env,
+	}
+
 	mux := http.NewServeMux()
-	registerRoutes(mux, env)
+	registerRoutes(mux, app)
 
 	server := &http.Server{
 		Addr:    ":" + env.port,

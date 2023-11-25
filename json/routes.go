@@ -3,9 +3,12 @@ package main
 import "net/http"
 
 // registerRoutes bundles the definitions and handling of the endpoints the server supports.
-func registerRoutes(mux *http.ServeMux, env *Env) {
-	fileserver := http.StripPrefix("/app", http.FileServer(http.Dir(env.fileserverPath)))
-	mux.Handle("/app/", fileserver)
+func registerRoutes(mux *http.ServeMux, app *App) {
+	fileserver := http.StripPrefix("/app", http.FileServer(http.Dir(app.env.fileserverPath)))
+	mux.Handle("/app/", app.IncrementMetrics(fileserver))
+
+	mux.HandleFunc("/metrics", app.ReportMetrics)
+	mux.HandleFunc("/reset", app.ResetMetrics)
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
