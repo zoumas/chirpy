@@ -10,10 +10,24 @@ type App struct {
 	fileserverHits int
 }
 
+type StatusCaptureResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (w *StatusCaptureResponseWriter) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
 func (app *App) IncrementMetrics(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app.fileserverHits++
-		handler.ServeHTTP(w, r)
+		statusCaptureWriter := &StatusCaptureResponseWriter{ResponseWriter: w}
+		handler.ServeHTTP(statusCaptureWriter, r)
+
+		if statusCaptureWriter.statusCode != http.StatusMovedPermanently {
+			app.fileserverHits++
+		}
 	})
 }
 

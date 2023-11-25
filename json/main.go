@@ -15,13 +15,11 @@ func main() {
 		env: env,
 	}
 
-	mux := http.NewServeMux()
-	registerRoutes(mux, app)
-
 	server := &http.Server{
 		Addr:    ":" + env.port,
-		Handler: withLogger(withCORS(mux)),
+		Handler: ConfiguredRouter(app),
 	}
+
 	log.Printf("STATUS: chirpy serving on port:%s", env.port)
 	log.Fatal(server.ListenAndServe())
 }
