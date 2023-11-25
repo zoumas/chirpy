@@ -25,6 +25,7 @@ func ConfiguredRouter(app *App) http.Handler {
 		},
 	}))
 	mainRouter.Use(middleware.Logger)
+	mainRouter.Use(middleware.Recoverer)
 
 	setupFileserver(mainRouter, app)
 
@@ -35,6 +36,10 @@ func ConfiguredRouter(app *App) http.Handler {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(http.StatusText(http.StatusOK)))
+	})
+
+	mainRouter.Post("/panic", func(_ http.ResponseWriter, _ *http.Request) {
+		panic("testing middleware.Recoverer")
 	})
 
 	return mainRouter
