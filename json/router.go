@@ -28,8 +28,23 @@ func ConfiguredRouter(app *app.App) *chi.Mux {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
-	router.Mount("/app", ConfiguredAppRouter(app))
 	router.Mount("/api", ConfiguredApiRouter(app))
+	router.Mount("/app", ConfiguredAppRouter(app))
+	router.Mount("/admin", ConfiguredAdminRouter(app))
+
+	return router
+}
+
+func ConfiguredApiRouter(app *app.App) *chi.Mux {
+	router := chi.NewRouter()
+
+	router.Get("/reset", app.ResetMetrics)
+
+	router.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(http.StatusText(http.StatusOK)))
+	})
 
 	return router
 }
@@ -46,21 +61,10 @@ func ConfiguredAppRouter(app *app.App) *chi.Mux {
 	return router
 }
 
-func ConfiguredApiRouter(app *app.App) *chi.Mux {
+func ConfiguredAdminRouter(app *app.App) *chi.Mux {
 	router := chi.NewRouter()
 
-	// Get doesn't really make sense here.
-	// Maybe POST would be more appropriate since we are mutating state.
-	// But it's required for the exercise.
-	router.Get("/reset", app.ResetMetrics)
-
 	router.Get("/metrics", app.ReportMetrics)
-
-	router.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(http.StatusText(http.StatusOK)))
-	})
 
 	return router
 }

@@ -1,7 +1,7 @@
 package app
 
 import (
-	"fmt"
+	"html/template"
 	"net/http"
 )
 
@@ -27,11 +27,13 @@ func (app *App) IncrementMetrics(handler http.Handler) http.Handler {
 }
 
 func (app *App) ReportMetrics(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
+	tmpl, err := template.ParseFiles("metrics.html")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	body := fmt.Sprintf("Hits: %d", app.FileServerHits)
-	w.Write([]byte(body))
+	tmpl.Execute(w, &app.FileServerHits)
 }
 
 func (app *App) ResetMetrics(w http.ResponseWriter, _ *http.Request) {
