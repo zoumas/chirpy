@@ -25,7 +25,7 @@ func withCORS(handler http.Handler) http.Handler {
 // withLogger logs the method and url path of every request.
 func withLogger(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.Method, r.URL.RawPath)
+		log.Println(r.Method, r.URL.Path)
 		handler.ServeHTTP(w, r)
 	})
 }
