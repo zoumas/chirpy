@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -11,7 +10,8 @@ import (
 
 // Env bundles all the environment variables the server needs to run.
 type Env struct {
-	port string
+	port           string
+	fileserverPath string
 }
 
 // Loadenv loads the environment variables to a struct.
@@ -29,10 +29,20 @@ func LoadEnv() (*Env, error) {
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
-		return nil, errors.New("PORT environment variable is not set")
+		return nil, EnvNotFound("PORT")
+	}
+
+	fileserverPath, ok := os.LookupEnv("FS_PATH")
+	if !ok {
+		return nil, EnvNotFound("FS_PATH")
 	}
 
 	return &Env{
-		port: port,
+		port:           port,
+		fileserverPath: fileserverPath,
 	}, nil
+}
+
+func EnvNotFound(name string) error {
+	return fmt.Errorf("%s environment variable is not set", name)
 }
