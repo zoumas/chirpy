@@ -1,25 +1,12 @@
 package main
 
 import (
-	"log"
-	"net/http"
+	"github.com/zoumas/chirpy/json/internal/app"
+	"github.com/zoumas/chirpy/json/internal/env"
 )
 
 func main() {
-	env, err := LoadEnv()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	app := &App{
-		env: env,
-	}
-
-	server := &http.Server{
-		Addr:    ":" + env.port,
-		Handler: ConfiguredRouter(app),
-	}
-
-	log.Printf("STATUS: chirpy serving on port:%s", env.port)
-	log.Fatal(server.ListenAndServe())
+	app := app.New(env.MustLoad())
+	server := ConfiguredServer(app)
+	app.Run(server)
 }

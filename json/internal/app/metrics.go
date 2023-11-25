@@ -1,14 +1,9 @@
-package main
+package app
 
 import (
 	"fmt"
 	"net/http"
 )
-
-type App struct {
-	env            *Env
-	fileserverHits int
-}
 
 type StatusCaptureResponseWriter struct {
 	http.ResponseWriter
@@ -26,7 +21,7 @@ func (app *App) IncrementMetrics(handler http.Handler) http.Handler {
 		handler.ServeHTTP(statusCaptureWriter, r)
 
 		if statusCaptureWriter.statusCode != http.StatusMovedPermanently {
-			app.fileserverHits++
+			app.FileserverHits++
 		}
 	})
 }
@@ -35,12 +30,12 @@ func (app *App) ReportMetrics(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
-	body := fmt.Sprintf("Hits: %d", app.fileserverHits)
+	body := fmt.Sprintf("Hits: %d", app.FileserverHits)
 	w.Write([]byte(body))
 }
 
 func (app *App) ResetMetrics(w http.ResponseWriter, _ *http.Request) {
-	app.fileserverHits = 0
+	app.FileserverHits = 0
 
 	w.WriteHeader(http.StatusOK)
 }
