@@ -21,7 +21,7 @@ func (app *App) IncrementMetrics(handler http.Handler) http.Handler {
 		handler.ServeHTTP(statusCaptureWriter, r)
 
 		if statusCaptureWriter.statusCode != http.StatusMovedPermanently {
-			app.FileserverHits++
+			app.FileServerHits++
 		}
 	})
 }
@@ -30,12 +30,12 @@ func (app *App) ReportMetrics(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
-	body := fmt.Sprintf("Hits: %d", app.FileserverHits)
+	body := fmt.Sprintf("Hits: %d", app.FileServerHits)
 	w.Write([]byte(body))
 }
 
 func (app *App) ResetMetrics(w http.ResponseWriter, _ *http.Request) {
-	app.FileserverHits = 0
+	app.FileServerHits = 0
 
 	w.WriteHeader(http.StatusOK)
 }

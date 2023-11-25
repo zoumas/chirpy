@@ -28,11 +28,8 @@ func ConfiguredRouter(app *app.App) *chi.Mux {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
-	appRouter := ConfiguredAppRouter(app)
-	router.Mount("/app", appRouter)
-
-	apiRouter := ConfiguredApiRouter(app)
-	router.Mount("/api", apiRouter)
+	router.Mount("/app", ConfiguredAppRouter(app))
+	router.Mount("/api", ConfiguredApiRouter(app))
 
 	return router
 }
@@ -52,7 +49,9 @@ func ConfiguredAppRouter(app *app.App) *chi.Mux {
 func ConfiguredApiRouter(app *app.App) *chi.Mux {
 	router := chi.NewRouter()
 
-	// Get doesn't really make sense here. Maybe POST would be more appropriate since we are mutating state. But it's required for the exercise.
+	// Get doesn't really make sense here.
+	// Maybe POST would be more appropriate since we are mutating state.
+	// But it's required for the exercise.
 	router.Get("/reset", app.ResetMetrics)
 
 	router.Get("/metrics", app.ReportMetrics)

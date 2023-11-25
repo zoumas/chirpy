@@ -10,7 +10,7 @@ import (
 // App is used to implement stateful handlers. It groups global state.
 type App struct {
 	Env            *env.Env
-	FileserverHits int
+	FileServerHits int
 }
 
 func New(env *env.Env) *App {
