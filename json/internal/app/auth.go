@@ -12,7 +12,7 @@ import (
 
 type AuthedHandler func(w http.ResponseWriter, r *http.Request, user database.User)
 
-func (app *App) WithJWT(handler AuthedHandler) http.HandlerFunc {
+func (app *App) WithAccessToken(handler AuthedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -49,6 +49,17 @@ func (app *App) WithJWT(handler AuthedHandler) http.HandlerFunc {
 			return
 		}
 
+		issuer, err := token.Claims.GetIssuer()
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if issuer == "chirpy-refresh" {
+			respondWithError(w, http.StatusUnauthorized, "access token required")
+			return
+		}
+
 		userIDString, err := token.Claims.GetSubject()
 		if err != nil {
 			respondWithError(
@@ -79,5 +90,90 @@ func (app *App) WithJWT(handler AuthedHandler) http.HandlerFunc {
 		}
 
 		handler(w, r, user)
+	}
+}
+
+type WithRefreshTokenParams struct {
+	token  string
+	userID int
+}
+
+func (app *App) WithRefreshToken(
+	handler func(w http.ResponseWriter, r *http.Request, params WithRefreshTokenParams),
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			respondWithError(w, http.StatusUnauthorized, "missing Authorization header")
+			return
+		}
+
+		authFields := strings.Fields(authHeader)
+		if len(authFields) != 2 {
+			respondWithError(w, http.StatusUnauthorized, "malformed Authorization header")
+			return
+		}
+
+		authMethod := authFields[0]
+		if authMethod != "Bearer" {
+			respondWithError(
+				w,
+				http.StatusUnauthorized,
+				fmt.Sprintf("Authorization method %q is not supported", authMethod),
+			)
+			return
+		}
+
+		tokenString := authFields[1]
+		token, err := jwt.ParseWithClaims(
+			tokenString,
+			&jwt.RegisteredClaims{},
+			func(t *jwt.Token) (interface{}, error) {
+				return []byte(app.Env.JwtSecret), nil
+			},
+		)
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, err.Error())
+			return
+		}
+
+		issuer, err := token.Claims.GetIssuer()
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if issuer == "chirpy-access" {
+			respondWithError(w, http.StatusUnauthorized, "refresh token required")
+			return
+		}
+
+		userIDString, err := token.Claims.GetSubject()
+		if err != nil {
+			respondWithError(
+				w,
+				http.StatusUnauthorized,
+				fmt.Sprintf("failed to parse user ID from token: %s", err.Error()),
+			)
+			return
+		}
+
+		userID, err := strconv.Atoi(userIDString)
+		if err != nil {
+			respondWithError(
+				w,
+				http.StatusInternalServerError,
+				fmt.Sprintf("failed to parse user ID: %s", err.Error()),
+			)
+			return
+		}
+
+		signedToken, err := token.SignedString([]byte(app.Env.JwtSecret))
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, err.Error())
+			return
+		}
+
+		handler(w, r, WithRefreshTokenParams{token: signedToken, userID: userID})
 	}
 }

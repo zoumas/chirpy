@@ -52,7 +52,10 @@ func ConfiguredApiRouter(app *app.App) *chi.Mux {
 
 	router.Post("/login", app.Login)
 	router.Post("/users", app.CreateUser)
-	router.Put("/users", app.WithJWT(app.UpdateUser))
+	router.Put("/users", app.WithAccessToken(app.UpdateUser))
+
+	router.Post("/revoke", app.WithRefreshToken(app.Revoke))
+	router.Post("/refresh", app.WithRefreshToken(app.Refresh))
 
 	return router
 }

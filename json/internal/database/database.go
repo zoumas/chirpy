@@ -16,14 +16,16 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"Chirps"`
-	Users  map[int]User  `json:"Users"`
+	Chirps        map[int]Chirp       `json:"chirps"`
+	Users         map[int]User        `json:"users"`
+	RevokedTokens map[string]struct{} `json:"revoked_tokens"`
 }
 
 func NewDBStructure() DBStructure {
 	return DBStructure{
-		Chirps: make(map[int]Chirp),
-		Users:  make(map[int]User),
+		Chirps:        make(map[int]Chirp),
+		Users:         make(map[int]User),
+		RevokedTokens: make(map[string]struct{}),
 	}
 }
 

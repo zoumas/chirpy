@@ -10,10 +10,11 @@ import (
 
 // App is used to implement stateful handlers. It groups global state.
 type App struct {
-	Env             *env.Env
-	DB              *database.DB
-	ChirpRepository database.ChirpRepository
-	UserRepository  database.UserRepository
+	Env                     *env.Env
+	DB                      *database.DB
+	ChirpRepository         database.ChirpRepository
+	UserRepository          database.UserRepository
+	RevokedTokensRepository database.RevokedTokensRepository
 
 	// FileServerHits is used to count the number of times the website
 	// has been viewed since the server started.
@@ -22,10 +23,11 @@ type App struct {
 
 func New(env *env.Env, db *database.DB) *App {
 	return &App{
-		Env:             env,
-		DB:              db,
-		ChirpRepository: NewJSONChirpResository(db),
-		UserRepository:  NewJSONUserRepository(db),
+		Env:                     env,
+		DB:                      db,
+		ChirpRepository:         NewJSONChirpResository(db),
+		UserRepository:          NewJSONUserRepository(db),
+		RevokedTokensRepository: NewJSONRevokedTokensRepository(db),
 	}
 }
 

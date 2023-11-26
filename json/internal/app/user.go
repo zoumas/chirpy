@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/zoumas/chirpy/json/internal/database"
 	"golang.org/x/crypto/bcrypt"
@@ -148,9 +147,8 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 	type RequestBody struct {
-		Email            string `json:"email"`
-		Password         string `json:"password"`
-		ExpiresInSeconds int    `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	body := RequestBody{}
 
@@ -173,20 +171,19 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	const twentyFourHrs = 24 * 60 * 60
-	var expiresInSeconds int = twentyFourHrs
-	if body.ExpiresInSeconds != 0 && body.ExpiresInSeconds < twentyFourHrs {
-		expiresInSeconds = body.ExpiresInSeconds
-	}
+	accessToken := NewAccessToken(user.ID)
+	refreshToken := NewRefreshToken(user.ID)
 
-	expiresIn, err := time.ParseDuration(fmt.Sprintf("%d", expiresInSeconds) + "s")
+	signedAccessToken, err := accessToken.SignedString([]byte(app.Env.JwtSecret))
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "failed to create JWT")
+		respondWithError(
+			w,
+			http.StatusInternalServerError,
+			fmt.Sprintf("failed to create JWT: %s", err),
+		)
 		return
 	}
-	token := CreateJWT(user.ID, expiresIn)
-
-	signedToken, err := token.SignedString([]byte(app.Env.JwtSecret))
+	signedRefreshToken, err := refreshToken.SignedString([]byte(app.Env.JwtSecret))
 	if err != nil {
 		respondWithError(
 			w,
@@ -197,14 +194,20 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type ResponseBody struct {
-		ID    int    `json:"id"`
-		Email string `json:"email"`
-		Token string `json:"token"`
+		ID           int    `json:"id"`
+		Email        string `json:"email"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 	respondWithJSON(
 		w,
 		http.StatusOK,
-		ResponseBody{ID: user.ID, Email: user.Email, Token: signedToken},
+		ResponseBody{
+			ID:           user.ID,
+			Email:        user.Email,
+			Token:        signedAccessToken,
+			RefreshToken: signedRefreshToken,
+		},
 	)
 }
 
