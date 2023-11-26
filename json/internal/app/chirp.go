@@ -29,9 +29,7 @@ type JSONChirpRepository struct {
 }
 
 func NewJSONChirpResository(db *database.DB) *JSONChirpRepository {
-	return &JSONChirpRepository{
-		db: db,
-	}
+	return &JSONChirpRepository{db: db}
 }
 
 // Create creates a new Chirp from a given body and stores it in the database; auto-incrementing the ID.
