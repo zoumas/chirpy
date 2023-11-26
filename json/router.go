@@ -47,7 +47,8 @@ func ConfiguredApiRouter(app *app.App) *chi.Mux {
 	})
 
 	router.Post("/chirps", app.CreateChirp)
-	router.Get("/chirps", app.GetChirps)
+	router.Get("/chirps", app.GetAllChirps)
+	router.Get("/chirps/{id}", app.GetChirpByID)
 
 	return router
 }

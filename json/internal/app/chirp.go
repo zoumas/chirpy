@@ -5,9 +5,23 @@ import (
 	"encoding/json"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/zoumas/chirpy/json/internal/database"
+)
+
+type ChirpErr string
+
+func (e ChirpErr) Error() string {
+	return string(e)
+}
+
+const (
+	ErrChirpTooLong  = ChirpErr("Chirp is too long")
+	ErrChirpEmpty    = ChirpErr("Chirp is empty")
+	ErrChirpNotFound = ChirpErr("Chirp not found")
 )
 
 type JSONChirpRepository struct {
@@ -53,25 +67,27 @@ func (r *JSONChirpRepository) GetAll() ([]database.Chirp, error) {
 	return chirps, nil
 }
 
-type ChirpErr string
+func (r *JSONChirpRepository) GetByID(id int) (database.Chirp, error) {
+	dbs, err := r.db.Load()
+	if err != nil {
+		return database.Chirp{}, err
+	}
 
-func (e ChirpErr) Error() string {
-	return string(e)
+	chirp, ok := dbs.Chirps[id]
+	if !ok {
+		return database.Chirp{}, ErrChirpNotFound
+	}
+	return chirp, nil
 }
-
-const (
-	ErrTooLong = ChirpErr("Chirp is too long")
-	ErrEmpty   = ChirpErr("Chirp is empty")
-)
 
 func ValidateChirpLength(body string) error {
 	const MaxChirpLength = 140
 
 	switch l := len(body); {
 	case l == 0:
-		return ErrEmpty
+		return ErrChirpEmpty
 	case l > MaxChirpLength:
-		return ErrTooLong
+		return ErrChirpTooLong
 	}
 
 	return nil
@@ -130,7 +146,7 @@ func (app *App) CreateChirp(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusCreated, chirp)
 }
 
-func (app *App) GetChirps(w http.ResponseWriter, r *http.Request) {
+func (app *App) GetAllChirps(w http.ResponseWriter, r *http.Request) {
 	chirps, err := app.ChirpRepository.GetAll()
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "failed to retrieve chirps")
@@ -142,4 +158,30 @@ func (app *App) GetChirps(w http.ResponseWriter, r *http.Request) {
 	})
 
 	respondWithJSON(w, http.StatusOK, chirps)
+}
+
+func (app *App) GetChirpByID(w http.ResponseWriter, r *http.Request) {
+	idString := chi.URLParam(r, "id")
+	if idString == "" {
+		respondWithError(w, http.StatusBadRequest, "missing url parameter")
+		return
+	}
+
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "failed to parse url parameter")
+		return
+	}
+
+	chirp, err := app.ChirpRepository.GetByID(id)
+	if err != nil {
+		if err == ErrChirpNotFound {
+			respondWithError(w, http.StatusNotFound, ErrChirpEmpty.Error())
+		} else {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, chirp)
 }

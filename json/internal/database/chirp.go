@@ -9,4 +9,5 @@ type Chirp struct {
 type ChirpRepository interface {
 	Create(body string) (Chirp, error)
 	GetAll() ([]Chirp, error)
+	GetByID(id int) (Chirp, error)
 }
