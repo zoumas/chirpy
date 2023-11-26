@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-func TestValidateChirp(t *testing.T) {
+func TestValidateChirpLength(t *testing.T) {
 	t.Run("small chirp", func(t *testing.T) {
 		body := "First post!"
 		err := ValidateChirpLength(body)
@@ -19,6 +19,56 @@ func TestValidateChirp(t *testing.T) {
 		err := ValidateChirpLength(body)
 		assertError(t, err, ErrTooLong)
 	})
+}
+
+func TestCleanChirpBody(t *testing.T) {
+	token := struct{}{}
+	profane := map[string]struct{}{
+		"kerfuffle": token,
+		"sharbert":  token,
+		"fornax":    token,
+	}
+	replaceWith := "****"
+
+	cases := []struct {
+		Desc        string
+		Body        string
+		CleanedBody string
+	}{
+		{
+			Desc:        "one profane word",
+			Body:        "This is a kerfuffle opinion I need to share with the world",
+			CleanedBody: "This is a **** opinion I need to share with the world",
+		},
+		{
+			Desc:        "one profane uppercase word",
+			Body:        "This is a Kerfuffle opinion I need to share with the world",
+			CleanedBody: "This is a **** opinion I need to share with the world",
+		},
+		{
+			Desc:        "two profane words with uppercase jumbled",
+			Body:        "This is a KerFuFFle opinion I need to share with the world and FOrnaX",
+			CleanedBody: "This is a **** opinion I need to share with the world and ****",
+		},
+		{
+			Desc:        "words surrounded by puncuation don't count as profane",
+			Body:        "Sharbert!",
+			CleanedBody: "Sharbert!",
+		},
+		{
+			Desc:        "all the rules combined",
+			Body:        "Kerfuffle is an interesting word. Sharbert is misspelled. What is fornax?",
+			CleanedBody: "**** is an interesting word. **** is misspelled. What is fornax?",
+		},
+	}
+
+	for _, cs := range cases {
+		t.Run(cs.Desc, func(t *testing.T) {
+			if got := CleanChirpBody(cs.Body, profane, replaceWith); got != cs.CleanedBody {
+				t.Errorf("\ngot: %q\nwant: %q", got, cs.CleanedBody)
+			}
+		})
+	}
 }
 
 func assertNoError(t testing.TB, err error) {

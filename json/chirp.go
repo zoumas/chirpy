@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 type ChirpErr string
@@ -29,6 +30,23 @@ func ValidateChirpLength(body string) error {
 	return nil
 }
 
+func CleanChirpBody(
+	body string,
+	profane map[string]struct{},
+	replaceWith string,
+) (cleanedBody string) {
+	split := strings.Split(body, " ")
+
+	for i, word := range split {
+		word = strings.ToLower(word)
+		if _, ok := profane[word]; ok {
+			split[i] = replaceWith
+		}
+	}
+
+	return strings.Join(split, " ")
+}
+
 func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
 	type RequestBody struct {
 		Body string `json:"body"`
@@ -47,8 +65,17 @@ func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, err.Error())
 	}
 
-	type ValidResponse struct {
-		Valid bool `json:"valid"`
+	token := struct{}{}
+	profane := map[string]struct{}{
+		"kerfuffle": token,
+		"sharbert":  token,
+		"fornax":    token,
 	}
-	respondWithJSON(w, http.StatusOK, ValidResponse{true})
+	replaceWith := "****"
+	cleanedBody := CleanChirpBody(body.Body, profane, replaceWith)
+
+	type CleanedBodyResponse struct {
+		CleanedBody string `json:"cleaned_body"`
+	}
+	respondWithJSON(w, http.StatusOK, CleanedBodyResponse{cleanedBody})
 }
