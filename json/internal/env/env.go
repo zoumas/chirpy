@@ -12,6 +12,7 @@ import (
 type Env struct {
 	Port           string
 	FileserverPath string
+	DSN            string
 }
 
 // Load loads the environment variables into a struct.
@@ -37,38 +38,16 @@ func Load() (*Env, error) {
 		return nil, envNotFound("FS_PATH")
 	}
 
+	dsn, ok := os.LookupEnv("DSN")
+	if !ok {
+		return nil, envNotFound("DSN")
+	}
+
 	return &Env{
 		Port:           port,
 		FileserverPath: fileserverPath,
+		DSN:            dsn,
 	}, nil
-}
-
-// MustLoad uses the same semantics as Load but panics on error.
-func MustLoad() *Env {
-	local := flag.Bool("local", false, "Depend on the .env file for local development")
-	flag.Parse()
-
-	if *local {
-		err := godotenv.Load()
-		if err != nil {
-			panic(fmt.Errorf("failed to load environment from .env : %s", err))
-		}
-	}
-
-	port, ok := os.LookupEnv("PORT")
-	if !ok {
-		panic(envNotFound("PORT"))
-	}
-
-	fileserverPath, ok := os.LookupEnv("FS_PATH")
-	if !ok {
-		panic(envNotFound("FS_PATH"))
-	}
-
-	return &Env{
-		Port:           port,
-		FileserverPath: fileserverPath,
-	}
 }
 
 func envNotFound(name string) error {
