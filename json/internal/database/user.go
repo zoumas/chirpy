@@ -11,7 +11,14 @@ type CreateUserParams struct {
 	Password string
 }
 
+type UpdateUserParams struct {
+	Email    string
+	Password string
+}
+
 type UserRepository interface {
 	Create(params CreateUserParams) (User, error)
 	GetByEmail(email string) (User, error)
+	GetByID(id int) (User, error)
+	Update(id int, params UpdateUserParams) (User, error)
 }

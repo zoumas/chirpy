@@ -13,6 +13,7 @@ type Env struct {
 	Port           string
 	FileserverPath string
 	DSN            string
+	JwtSecret      string
 }
 
 // Load loads the environment variables into a struct.
@@ -43,10 +44,16 @@ func Load() (*Env, error) {
 		return nil, envNotFound("DSN")
 	}
 
+	jwtSecret, ok := os.LookupEnv("JWT_SECRET")
+	if !ok {
+		return nil, envNotFound("JWT_SECRET")
+	}
+
 	return &Env{
 		Port:           port,
 		FileserverPath: fileserverPath,
 		DSN:            dsn,
+		JwtSecret:      jwtSecret,
 	}, nil
 }
 

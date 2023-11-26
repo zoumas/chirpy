@@ -50,8 +50,9 @@ func ConfiguredApiRouter(app *app.App) *chi.Mux {
 	router.Get("/chirps", app.GetAllChirps)
 	router.Get("/chirps/{id}", app.GetChirpByID)
 
-	router.Post("/users", app.CreateUser)
 	router.Post("/login", app.Login)
+	router.Post("/users", app.CreateUser)
+	router.Put("/users", app.WithJWT(app.UpdateUser))
 
 	return router
 }

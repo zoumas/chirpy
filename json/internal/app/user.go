@@ -2,7 +2,9 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/zoumas/chirpy/json/internal/database"
 	"golang.org/x/crypto/bcrypt"
@@ -68,6 +70,46 @@ func (r *JSONUserRepository) GetByEmail(email string) (database.User, error) {
 	return database.User{}, ErrUserNotFound
 }
 
+func (r *JSONUserRepository) GetByID(id int) (database.User, error) {
+	dbs, err := r.db.Load()
+	if err != nil {
+		return database.User{}, err
+	}
+
+	user, ok := dbs.Users[id]
+	if !ok {
+		return database.User{}, ErrUserNotFound
+	}
+	return user, nil
+}
+
+func (r *JSONUserRepository) Update(
+	id int,
+	params database.UpdateUserParams,
+) (database.User, error) {
+	dbs, err := r.db.Load()
+	if err != nil {
+		return database.User{}, err
+	}
+
+	user, ok := dbs.Users[id]
+	if !ok {
+		return database.User{}, ErrUserNotFound
+	}
+
+	user.Email = params.Email
+	user.Password = params.Password
+
+	dbs.Users[user.ID] = user
+
+	err = r.db.Persist(dbs)
+	if err != nil {
+		return database.User{}, err
+	}
+
+	return user, nil
+}
+
 func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	type RequestBody struct {
 		Email    string `json:"email"`
@@ -106,8 +148,9 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 	type RequestBody struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email            string `json:"email"`
+		Password         string `json:"password"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}
 	body := RequestBody{}
 
@@ -130,9 +173,83 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	const twentyFourHrs = 24 * 60 * 60
+	var expiresInSeconds int = twentyFourHrs
+	if body.ExpiresInSeconds != 0 && body.ExpiresInSeconds < twentyFourHrs {
+		expiresInSeconds = body.ExpiresInSeconds
+	}
+
+	expiresIn, err := time.ParseDuration(fmt.Sprintf("%d", expiresInSeconds) + "s")
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "failed to create JWT")
+		return
+	}
+	token := CreateJWT(user.ID, expiresIn)
+
+	signedToken, err := token.SignedString([]byte(app.Env.JwtSecret))
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusInternalServerError,
+			fmt.Sprintf("failed to create JWT: %s", err),
+		)
+		return
+	}
+
+	type ResponseBody struct {
+		ID    int    `json:"id"`
+		Email string `json:"email"`
+		Token string `json:"token"`
+	}
+	respondWithJSON(
+		w,
+		http.StatusOK,
+		ResponseBody{ID: user.ID, Email: user.Email, Token: signedToken},
+	)
+}
+
+func (app *App) UpdateUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	type RequestBody struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	body := RequestBody{}
+
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if body.Email != user.Email {
+		_, err := app.UserRepository.GetByEmail(body.Email)
+		if err == ErrUserEmailTaken {
+			respondWithError(w, http.StatusBadRequest, ErrUserEmailTaken.Error())
+			return
+		}
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	updatedUser, err := app.UserRepository.Update(user.ID, database.UpdateUserParams{
+		Email:    body.Email,
+		Password: string(hashedPassword),
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	type ResponseBody struct {
 		ID    int    `json:"id"`
 		Email string `json:"email"`
 	}
-	respondWithJSON(w, http.StatusOK, ResponseBody{ID: user.ID, Email: user.Email})
+	respondWithJSON(w, http.StatusOK, ResponseBody{
+		ID:    updatedUser.ID,
+		Email: updatedUser.Email,
+	})
 }
