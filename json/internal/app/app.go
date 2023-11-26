@@ -12,7 +12,7 @@ import (
 type App struct {
 	Env             *env.Env
 	DB              *database.DB
-	ChirpRepository *JSONChirpRepository
+	ChirpRepository database.ChirpRepository
 
 	// FileServerHits is used to count the number of times the website
 	// has been viewed since the server started.
