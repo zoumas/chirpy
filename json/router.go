@@ -46,7 +46,7 @@ func ConfiguredApiRouter(app *app.App) *chi.Mux {
 		w.Write([]byte(http.StatusText(http.StatusOK)))
 	})
 
-	router.Post("/chirps", app.CreateChirp)
+	router.Post("/chirps", app.WithAccessToken(app.CreateChirp))
 	router.Get("/chirps", app.GetAllChirps)
 	router.Get("/chirps/{id}", app.GetChirpByID)
 

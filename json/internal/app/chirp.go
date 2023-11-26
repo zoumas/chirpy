@@ -33,14 +33,14 @@ func NewJSONChirpResository(db *database.DB) *JSONChirpRepository {
 }
 
 // Create creates a new Chirp from a given body and stores it in the database; auto-incrementing the ID.
-func (r *JSONChirpRepository) Create(body string) (database.Chirp, error) {
+func (r *JSONChirpRepository) Create(params database.CreateChirpParams) (database.Chirp, error) {
 	dbs, err := r.db.Load()
 	if err != nil {
 		return database.Chirp{}, err
 	}
 
 	id := len(dbs.Chirps) + 1
-	chirp := database.Chirp{ID: id, Body: body}
+	chirp := database.Chirp{ID: id, Body: params.Body, UserID: params.UserID}
 	dbs.Chirps[id] = chirp
 
 	err = r.db.Persist(dbs)
@@ -108,7 +108,7 @@ func CleanChirpBody(
 	return strings.Join(split, " ")
 }
 
-func (app *App) CreateChirp(w http.ResponseWriter, r *http.Request) {
+func (app *App) CreateChirp(w http.ResponseWriter, r *http.Request, user database.User) {
 	type RequestBody struct {
 		Body string `json:"body"`
 	}
@@ -135,7 +135,10 @@ func (app *App) CreateChirp(w http.ResponseWriter, r *http.Request) {
 	replaceWith := "****"
 	cleanedBody := CleanChirpBody(body.Body, profane, replaceWith)
 
-	chirp, err := app.ChirpRepository.Create(cleanedBody)
+	chirp, err := app.ChirpRepository.Create(database.CreateChirpParams{
+		Body:   cleanedBody,
+		UserID: user.ID,
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "failed to create chirp")
 		return

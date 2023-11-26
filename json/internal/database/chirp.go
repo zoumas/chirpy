@@ -2,12 +2,18 @@ package database
 
 // A Chirp is a text-only post, similar to twitter's Tweet.
 type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
+	ID     int    `json:"id"`
+	Body   string `json:"body"`
+	UserID int    `json:"author_id"`
+}
+
+type CreateChirpParams struct {
+	Body   string
+	UserID int
 }
 
 type ChirpRepository interface {
-	Create(body string) (Chirp, error)
+	Create(params CreateChirpParams) (Chirp, error)
 	GetAll() ([]Chirp, error)
 	GetByID(id int) (Chirp, error)
 }
