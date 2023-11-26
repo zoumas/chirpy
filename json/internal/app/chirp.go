@@ -19,9 +19,10 @@ func (e ChirpErr) Error() string {
 }
 
 const (
-	ErrChirpTooLong  = ChirpErr("Chirp is too long")
-	ErrChirpEmpty    = ChirpErr("Chirp is empty")
-	ErrChirpNotFound = ChirpErr("Chirp not found")
+	ErrChirpTooLong   = ChirpErr("Chirp is too long")
+	ErrChirpEmpty     = ChirpErr("Chirp is empty")
+	ErrChirpNotFound  = ChirpErr("Chirp not found")
+	ErrChirpNotAuthor = ChirpErr("Chirp is not owned by this user")
 )
 
 type JSONChirpRepository struct {
@@ -76,6 +77,25 @@ func (r *JSONChirpRepository) GetByID(id int) (database.Chirp, error) {
 		return database.Chirp{}, ErrChirpNotFound
 	}
 	return chirp, nil
+}
+
+func (r *JSONChirpRepository) Delete(params database.DeleteChirpParams) error {
+	dbs, err := r.db.Load()
+	if err != nil {
+		return err
+	}
+
+	chirp, ok := dbs.Chirps[params.ID]
+	if !ok {
+		return ErrChirpNotFound
+	}
+
+	if chirp.UserID != params.UserID {
+		return ErrChirpNotAuthor
+	}
+
+	delete(dbs.Chirps, params.ID)
+	return r.db.Persist(dbs)
 }
 
 func ValidateChirpLength(body string) error {
@@ -185,4 +205,25 @@ func (app *App) GetChirpByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, chirp)
+}
+
+func (app *App) DeleteChirp(w http.ResponseWriter, r *http.Request, user database.User) {
+	idString := chi.URLParam(r, "id")
+	if idString == "" {
+		respondWithError(w, http.StatusBadRequest, "missing url parameter")
+		return
+	}
+
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "failed to parse url parameter")
+		return
+	}
+
+	err = app.ChirpRepository.Delete(database.DeleteChirpParams{ID: id, UserID: user.ID})
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }

@@ -12,8 +12,14 @@ type CreateChirpParams struct {
 	UserID int
 }
 
+type DeleteChirpParams struct {
+	ID     int
+	UserID int
+}
+
 type ChirpRepository interface {
 	Create(params CreateChirpParams) (Chirp, error)
 	GetAll() ([]Chirp, error)
 	GetByID(id int) (Chirp, error)
+	Delete(params DeleteChirpParams) error
 }
