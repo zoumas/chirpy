@@ -13,6 +13,7 @@ type App struct {
 	Env             *env.Env
 	DB              *database.DB
 	ChirpRepository database.ChirpRepository
+	UserRepository  database.UserRepository
 
 	// FileServerHits is used to count the number of times the website
 	// has been viewed since the server started.
@@ -24,6 +25,7 @@ func New(env *env.Env, db *database.DB) *App {
 		Env:             env,
 		DB:              db,
 		ChirpRepository: NewJSONChirpResository(db),
+		UserRepository:  NewJSONUserRepository(db),
 	}
 }
 

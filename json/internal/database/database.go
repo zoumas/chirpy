@@ -17,11 +17,13 @@ type DB struct {
 
 type DBStructure struct {
 	Chirps map[int]Chirp `json:"Chirps"`
+	Users  map[int]User  `json:"Users"`
 }
 
 func NewDBStructure() DBStructure {
 	return DBStructure{
 		Chirps: make(map[int]Chirp),
+		Users:  make(map[int]User),
 	}
 }
 
