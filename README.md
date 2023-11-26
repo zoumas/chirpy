@@ -1,6 +1,6 @@
 # Chirpy
 
-Chirpy is a social network web server written in Go.
+Chirpy is a social network backend written in Go.
 
 ## Subject of the Work
 
