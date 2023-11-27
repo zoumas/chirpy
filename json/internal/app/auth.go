@@ -177,3 +177,33 @@ func (app *App) WithRefreshToken(
 		handler(w, r, WithRefreshTokenParams{token: signedToken, userID: userID})
 	}
 }
+
+func (app *App) WithPolkaApiKey(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		authFields := strings.Fields(authHeader)
+		if len(authFields) != 2 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		authMethod := authFields[0]
+		if authMethod != "ApiKey" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		polkaApiKey := authFields[1]
+		if polkaApiKey != app.Env.PolkaApiKey {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	}
+}

@@ -58,7 +58,7 @@ func ConfiguredApiRouter(app *app.App) *chi.Mux {
 	router.Post("/revoke", app.WithRefreshToken(app.Revoke))
 	router.Post("/refresh", app.WithRefreshToken(app.Refresh))
 
-	router.Post("/polka/webhooks", app.SubscribeToChirpyRed)
+	router.Post("/polka/webhooks", app.WithPolkaApiKey(app.SubscribeToChirpyRed))
 
 	return router
 }

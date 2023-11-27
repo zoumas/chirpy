@@ -14,6 +14,7 @@ type Env struct {
 	FileserverPath string
 	DSN            string
 	JwtSecret      string
+	PolkaApiKey    string
 }
 
 // Load loads the environment variables into a struct.
@@ -49,11 +50,17 @@ func Load() (*Env, error) {
 		return nil, envNotFound("JWT_SECRET")
 	}
 
+	polkaApiKey, ok := os.LookupEnv("POLKA_API_KEY")
+	if !ok {
+		return nil, envNotFound("POLKA_API_KEY")
+	}
+
 	return &Env{
 		Port:           port,
 		FileserverPath: fileserverPath,
 		DSN:            dsn,
 		JwtSecret:      jwtSecret,
+		PolkaApiKey:    polkaApiKey,
 	}, nil
 }
 
