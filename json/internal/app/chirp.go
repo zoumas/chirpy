@@ -66,6 +66,21 @@ func (r *JSONChirpRepository) GetAll() ([]database.Chirp, error) {
 	return chirps, nil
 }
 
+func (r *JSONChirpRepository) GetByUserID(userID int) ([]database.Chirp, error) {
+	dbs, err := r.db.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	chirps := make([]database.Chirp, 0, len(dbs.Chirps))
+	for _, chirp := range dbs.Chirps {
+		if chirp.UserID == userID {
+			chirps = append(chirps, chirp)
+		}
+	}
+	return chirps, nil
+}
+
 func (r *JSONChirpRepository) GetByID(id int) (database.Chirp, error) {
 	dbs, err := r.db.Load()
 	if err != nil {
@@ -168,10 +183,29 @@ func (app *App) CreateChirp(w http.ResponseWriter, r *http.Request, user databas
 }
 
 func (app *App) GetAllChirps(w http.ResponseWriter, r *http.Request) {
-	chirps, err := app.ChirpRepository.GetAll()
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "failed to retrieve chirps")
-		return
+	authorIDString := r.URL.Query().Get("author_id")
+
+	var chirps []database.Chirp
+	var err error
+
+	if authorIDString == "" {
+		chirps, err = app.ChirpRepository.GetAll()
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "failed to retrieve chirps")
+			return
+		}
+	} else {
+		authorID, err := strconv.Atoi(authorIDString)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "failed to parse user id")
+			return
+		}
+
+		chirps, err = app.ChirpRepository.GetByUserID(authorID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "failed to retrieve chirps")
+			return
+		}
 	}
 
 	slices.SortStableFunc(chirps, func(a, b database.Chirp) int {
