@@ -19,7 +19,8 @@ type DeleteChirpParams struct {
 
 type ChirpRepository interface {
 	Create(params CreateChirpParams) (Chirp, error)
-	GetAll() ([]Chirp, error)
 	GetByID(id int) (Chirp, error)
+	GetAll() ([]Chirp, error)
+	GetByUserID(userID int) ([]Chirp, error)
 	Delete(params DeleteChirpParams) error
 }
