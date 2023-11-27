@@ -109,6 +109,29 @@ func (r *JSONUserRepository) Update(
 	return user, nil
 }
 
+func (r *JSONUserRepository) UpgradeToRed(id int) (database.User, error) {
+	dbs, err := r.db.Load()
+	if err != nil {
+		return database.User{}, err
+	}
+
+	user, ok := dbs.Users[id]
+	if !ok {
+		return database.User{}, ErrUserNotFound
+	}
+
+	user.IsChirpyRed = true
+
+	dbs.Users[user.ID] = user
+
+	err = r.db.Persist(dbs)
+	if err != nil {
+		return database.User{}, err
+	}
+
+	return user, nil
+}
+
 func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	type RequestBody struct {
 		Email    string `json:"email"`
@@ -139,10 +162,15 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type ResponseBody struct {
-		ID    int    `json:"id"`
-		Email string `json:"email"`
+		ID          int    `json:"id"`
+		Email       string `json:"email"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
 	}
-	respondWithJSON(w, http.StatusCreated, ResponseBody{ID: user.ID, Email: user.Email})
+	respondWithJSON(
+		w,
+		http.StatusCreated,
+		ResponseBody{ID: user.ID, Email: user.Email, IsChirpyRed: user.IsChirpyRed},
+	)
 }
 
 func (app *App) Login(w http.ResponseWriter, r *http.Request) {
@@ -196,6 +224,7 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 	type ResponseBody struct {
 		ID           int    `json:"id"`
 		Email        string `json:"email"`
+		IsChirpyRed  bool   `json:"is_chirpy_red"`
 		Token        string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
 	}
@@ -205,6 +234,7 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 		ResponseBody{
 			ID:           user.ID,
 			Email:        user.Email,
+			IsChirpyRed:  user.IsChirpyRed,
 			Token:        signedAccessToken,
 			RefreshToken: signedRefreshToken,
 		},
@@ -248,11 +278,13 @@ func (app *App) UpdateUser(w http.ResponseWriter, r *http.Request, user database
 	}
 
 	type ResponseBody struct {
-		ID    int    `json:"id"`
-		Email string `json:"email"`
+		ID          int    `json:"id"`
+		Email       string `json:"email"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
 	}
 	respondWithJSON(w, http.StatusOK, ResponseBody{
-		ID:    updatedUser.ID,
-		Email: updatedUser.Email,
+		ID:          updatedUser.ID,
+		Email:       updatedUser.Email,
+		IsChirpyRed: updatedUser.IsChirpyRed,
 	})
 }
