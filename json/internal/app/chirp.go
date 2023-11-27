@@ -208,9 +208,17 @@ func (app *App) GetAllChirps(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	slices.SortStableFunc(chirps, func(a, b database.Chirp) int {
-		return cmp.Compare(a.ID, b.ID)
-	})
+	sortParam := r.URL.Query().Get("sort")
+
+	if sortParam == "desc" {
+		slices.SortStableFunc(chirps, func(a, b database.Chirp) int {
+			return cmp.Compare(b.ID, a.ID)
+		})
+	} else {
+		slices.SortStableFunc(chirps, func(a, b database.Chirp) int {
+			return cmp.Compare(a.ID, b.ID)
+		})
+	}
 
 	respondWithJSON(w, http.StatusOK, chirps)
 }
